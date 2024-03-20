@@ -1,0 +1,22 @@
+pipelines:
+  default:
+    - step:
+        name: Backup and Restore MongoDB
+        image: debian:latest
+        caches:
+          - apt
+        script:
+          # Update package repositories and install necessary packages
+          - apt-get update && apt-get install -y mongodb-tools openvpn openssl
+          
+          # Decrypt OpenVPN configuration file
+          - openssl aes-256-cbc -d -in openvpn-config.enc -out openvpn-config.ovpn -k $ENCRYPTION_KEY
+          
+          # Connect to OpenVPN
+          - openvpn --config openvpn-config.ovpn --daemon
+          - sleep 10
+          
+          # Check OpenVPN connection status
+          - if openvpn --config openvpn-config.ovpn --status /dev/null; then echo "OpenVPN connected successfully"; else echo "OpenVPN connection failed"; exit 1; fi
+          
+          - pkill openvpn
